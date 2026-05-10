@@ -1,6 +1,6 @@
 # PDF Chatbot
 
-AI-powered PDF chatbot using Flask, OpenAI, and FAISS.
+AI-powered PDF chatbot using Flask and FAISS.
 
 ## Installation
 
