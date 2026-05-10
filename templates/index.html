@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon PDF AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Neon <span class="highlight">PDF</span> AI</h1>
+            <p>Upload a PDF, ask questions, or generate a quiz.</p>
+        </header>
+
+        <section class="upload-section glass-panel">
+            <input type="file" id="pdf-upload" accept="application/pdf" hidden>
+            <label for="pdf-upload" class="upload-btn">Choose PDF File</label>
+            <span id="file-name">No file chosen</span>
+            <button id="upload-btn" class="action-btn" disabled>Upload</button>
+            <div id="upload-status"></div>
+        </section>
+
+        <div class="main-content">
+            <section class="chat-section glass-panel">
+                <h2>Chat with PDF</h2>
+                <div class="chat-box" id="chat-box">
+                    <div class="message system">Upload a PDF to start chatting.</div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="chat-input" placeholder="Ask a question..." disabled>
+                    <button id="send-btn" class="action-btn" disabled>Send</button>
+                </div>
+            </section>
+
+            <section class="quiz-section glass-panel">
+                <h2>Generate Quiz</h2>
+                <div class="quiz-controls">
+                    <label for="num-questions">Questions:</label>
+                    <input type="number" id="num-questions" value="3" min="1" max="10">
+                    <button id="generate-quiz-btn" class="action-btn neon-glow" disabled>Generate Quiz</button>
+                </div>
+                <div class="quiz-box" id="quiz-box">
+                    <div class="message system">Quiz will appear here.</div>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <script src="/static/script.js"></script>
+</body>
+</html>
