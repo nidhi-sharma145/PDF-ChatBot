@@ -1,0 +1,101 @@
+import os
+from typing import List, Dict, Optional
+import numpy as np
+import faiss
+from sentence_transformers import SentenceTransformer
+
+class VectorStoreManager:
+    """
+    Manages vector databases in-memory.
+    Uses SentenceTransformers for embedding generation and FAISS for similarity searches.
+    """
+    def __init__(self):
+        # Cache the model to avoid re-loading on each operation
+        self._model: Optional[SentenceTransformer] = None
+        # Maps unique session or document keys to their respective FAISS index & text chunks
+        self._stores: Dict[str, Dict] = {}
+        # Stores the ID of the currently active document session
+        self.active_session_id: Optional[str] = None
+
+    def _get_model(self) -> SentenceTransformer:
+        """Lazily instantiates the SentenceTransformer model to optimize startup time."""
+        if self._model is None:
+            # We use 'all-MiniLM-L6-v2', a fast, high-quality, 90MB CPU-friendly model.
+            # It will download on first use and be cached locally.
+            self._model = SentenceTransformer('all-MiniLM-L6-v2')
+        return self._model
+
+    def create_session(self, session_id: str, chunks: List[str]) -> bool:
+        """
+        Creates a new vector store session for a given document.
+        
+        Args:
+            session_id: A unique identifier (e.g. filename or hash)
+            chunks: A list of text chunks extracted from the PDF.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        if not chunks:
+            return False
+            
+        model = self._get_model()
+        
+        # Convert text chunks to vector embeddings
+        embeddings = model.encode(chunks, convert_to_numpy=True, show_progress_bar=False)
+        dimension = embeddings.shape[1]
+        
+        # FAISS IndexFlatL2 measures simple Euclidean distance between vectors
+        index = faiss.IndexFlatL2(dimension)
+        index.add(embeddings.astype('float32'))
+        
+        # Store chunks and index in-memory
+        self._stores[session_id] = {
+            "index": index,
+            "chunks": chunks
+        }
+        self.active_session_id = session_id
+        return True
+
+    def search(self, query: str, session_id: Optional[str] = None, top_k: int = 4) -> List[str]:
+        """
+        Searches for the most semantically similar text chunks related to a query.
+        
+        Args:
+            query: The user's question or search query.
+            session_id: Optional specific session ID; defaults to the active session.
+            top_k: Number of matching chunks to return.
+            
+        Returns:
+            A list of matching text chunks.
+        """
+        target_session = session_id or self.active_session_id
+        if not target_session or target_session not in self._stores:
+            return []
+            
+        store = self._stores[target_session]
+        index = store["index"]
+        chunks = store["chunks"]
+        
+        model = self._get_model()
+        query_embedding = model.encode([query], convert_to_numpy=True, show_progress_bar=False)
+        
+        # Execute search in FAISS
+        distances, indices = index.search(query_embedding.astype('float32'), top_k)
+        
+        results = []
+        for idx in indices[0]:
+            if idx != -1 and idx < len(chunks):
+                results.append(chunks[idx])
+                
+        return results
+
+    def clear_session(self, session_id: str):
+        """Removes a session's vector store from memory."""
+        if session_id in self._stores:
+            del self._stores[session_id]
+        if self.active_session_id == session_id:
+            self.active_session_id = None
+
+# Singleton instance to import across the app
+vector_store = VectorStoreManager()

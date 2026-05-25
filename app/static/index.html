@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AURA PDF AI - Modern, glassmorphic, AI-powered PDF analyzer, chat assistant, and quiz generator. Powered by FastAPI, FAISS, and Gemini/Groq.">
+    <title>AURA PDF AI // Futuristic Chat & Quiz Workspace</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- FontAwesome for futuristic UI icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header>
+        <div class="logo">
+            <div class="logo-icon"><i class="fa-solid fa-atom"></i></div>
+            <h1 class="logo-text" id="app-title">AURA PDF AI</h1>
+        </div>
+        <div class="tab-controls">
+            <button class="tab-btn active" id="btn-chat-tab" onclick="switchTab('chat')">
+                <i class="fa-solid fa-comments"></i> Chat Session
+            </button>
+            <button class="tab-btn" id="btn-quiz-tab" onclick="switchTab('quiz')">
+                <i class="fa-solid fa-graduation-cap"></i> Quiz Terminal
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="app-container">
+        
+        <!-- Sidebar: Configurations and File Manager -->
+        <section class="sidebar" aria-label="Sidebar controls">
+            
+            <!-- Upload Panel -->
+            <div class="glass-panel">
+                <h2 class="panel-title"><i class="fa-solid fa-cloud-arrow-up"></i> Document Hub</h2>
+                <div class="upload-container" id="drop-zone" onclick="triggerFileInput()">
+                    <i class="fa-solid fa-file-pdf upload-icon"></i>
+                    <span class="upload-text">Select or Drag PDF</span>
+                    <span class="upload-subtext">Supports files up to 25MB</span>
+                    <input type="file" id="file-input" accept=".pdf" onchange="handleFileSelection(event)">
+                </div>
+
+                <!-- Active Document Info Status -->
+                <div class="active-doc-info">
+                    <div class="info-row">
+                        <span class="info-label">Active Document:</span>
+                        <span class="info-badge badge-empty" id="status-badge">No Document</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Filename:</span>
+                        <span class="info-value" id="info-filename" title="None">None</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Text Segments:</span>
+                        <span class="info-value" id="info-chunks">0 chunks</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">File Size:</span>
+                        <span class="info-value" id="info-size">0 KB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Configuration Selector Panel -->
+            <div class="glass-panel">
+                <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Engine Config</h2>
+                <div class="config-selector">
+                    <label for="provider-select" style="font-size: 0.85rem; color: #94a3b8; font-weight: 500;">Active AI Engine:</label>
+                    <div class="select-wrapper">
+                        <select id="provider-select" onchange="handleProviderChange()">
+                            <option value="gemini">Google Gemini AI</option>
+                            <option value="groq">Groq Llama 3</option>
+                        </select>
+                    </div>
+                    <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; line-height: 1.4;">
+                        Ensure your selected AI provider's API key is set in the <code>.env</code> file. The embedding system runs 100% offline locally using Sentence Transformers.
+                    </p>
+                </div>
+            </div>
+            
+        </section>
+
+        <!-- Main Display / Viewport -->
+        <section class="workspace" aria-label="Main interactive workspace">
+            <div class="views-container">
+                
+                <!-- Tab 1: Chat Assistant View -->
+                <div class="view-content active" id="view-chat">
+                    <div class="glass-panel chat-window">
+                        
+                        <!-- Chat History Container -->
+                        <div class="chat-history" id="chat-history-container">
+                            
+                            <!-- Welcome Cosmic Banner (displayed when history is empty) -->
+                            <div class="welcome-box" id="chat-welcome">
+                                <i class="fa-solid fa-satellite-dish welcome-logo"></i>
+                                <h2 class="welcome-title">Cosmic Knowledge Base</h2>
+                                <p class="welcome-desc">
+                                    Upload a PDF document to begin. The AI will parse, segment, and index its contents using vector similarity search, enabling instant, contextual responses.
+                                </p>
+                            </div>
+                            
+                        </div>
+
+                        <!-- Chat Input bar -->
+                        <div class="chat-input-bar">
+                            <div class="input-container">
+                                <div class="input-glow-wrapper">
+                                    <textarea id="chat-textarea" placeholder="Query your active PDF document here..." onkeydown="handleChatSubmit(event)" disabled></textarea>
+                                </div>
+                            </div>
+                            <button class="send-btn" id="btn-send-message" onclick="sendMessage()" disabled title="Please upload a PDF first">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        
+                    </div>
+                </div>
+
+                <!-- Tab 2: Quiz Terminal View -->
+                <div class="view-content" id="view-quiz">
+                    <div class="glass-panel quiz-wrapper">
+                        
+                        <!-- Stage A: Quiz Setup Block -->
+                        <div class="quiz-setup" id="quiz-setup-block">
+                            <i class="fa-solid fa-gamepad quiz-icon"></i>
+                            <h2 class="welcome-title">Knowledge Assessment</h2>
+                            <p class="welcome-desc" style="max-width: 480px;">
+                                Challenge yourself by generating an automated multiple-choice quiz based on the key facts, formulas, and concepts within your active document.
+                            </p>
+                            
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                                <label for="quiz-size" style="font-size: 0.95rem; color: #94a3b8;">Questions:</label>
+                                <div class="select-wrapper" style="width: 100px;">
+                                    <select id="quiz-size">
+                                        <option value="3">3</option>
+                                        <option value="5" selected>5</option>
+                                        <option value="8">8</option>
+                                        <option value="10">10</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <button class="quiz-btn" id="btn-generate-quiz" onclick="buildQuiz()" disabled title="Please upload a PDF first">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Synthesize Quiz
+                            </button>
+                        </div>
+
+                        <!-- Stage B: Loading State -->
+                        <div class="loader-container hidden" id="quiz-loader">
+                            <i class="fa-solid fa-spinner loader-spinner" style="font-size: 2.5rem; width: 40px; height: 40px;"></i>
+                            <span style="font-family: var(--font-heading); font-size: 1.25rem; font-weight: 600; color: #fff;">Processing Document & Synthesizing Questions...</span>
+                            <div class="loader-bar"></div>
+                        </div>
+
+                        <!-- Stage C: Active Quiz Deck -->
+                        <div class="quiz-deck hidden" id="quiz-deck-container">
+                            <div class="quiz-header">
+                                <div style="display: flex; flex-direction: column; width: 100%;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span class="quiz-stats" id="quiz-progress-text">Question 1 of 5</span>
+                                        <span class="quiz-stats" style="color: var(--neon-green);" id="quiz-score-badge">Score: 0</span>
+                                    </div>
+                                    <div class="progress-track">
+                                        <div class="progress-fill" id="quiz-progress-fill"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="question-card">
+                                <h3 class="question-text" id="quiz-question-text">Loading question text...?</h3>
+                                <div class="options-list" id="quiz-options-list">
+                                    <!-- Options injected here -->
+                                </div>
+                            </div>
+
+                            <div class="quiz-footer">
+                                <button class="btn-secondary" onclick="exitQuiz()">Exit</button>
+                                <button class="quiz-btn" id="btn-next-question" onclick="advanceQuiz()" disabled style="padding: 0.65rem 1.75rem; font-size: 1rem;">
+                                    Next Question <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stage D: Quiz Results Summary -->
+                        <div class="results-card hidden" id="quiz-results-container">
+                            <div class="results-score-circle">
+                                <span class="score-num" id="results-score-num">4</span>
+                                <span class="score-total" id="results-score-total">/ 5</span>
+                            </div>
+                            <h3 class="results-title" id="results-headline">Outstanding Accomplishment!</h3>
+                            <p class="results-desc" id="results-feedback-text">
+                                You demonstrated exceptional mastery of the document content. Retake the quiz or ask follow-up questions to lock in the knowledge.
+                            </p>
+                            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                <button class="btn-secondary" onclick="exitQuiz()">Exit Panel</button>
+                                <button class="quiz-btn" onclick="buildQuiz()" style="padding: 0.65rem 1.75rem; font-size: 1rem;">
+                                    <i class="fa-solid fa-rotate-left"></i> Retake Assessment
+                                </button>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- Toast Notification Container for interactive errors/success alerts -->
+    <div class="toast-container" id="notification-area" aria-live="polite"></div>
+
+    <!-- Custom Frontend Controller Script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

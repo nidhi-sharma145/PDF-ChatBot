@@ -1,0 +1,37 @@
+# ============================================================
+# AURA PDF AI - Git Ignore Rules
+# ============================================================
+
+# CRITICAL: Never upload real API keys or environment secrets
+.env
+
+# Python virtual environment (install with: pip install -r requirements.txt)
+venv/
+.venv/
+env/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Uploaded PDF files (user data - should not be committed)
+*.pdf
+
+# Hugging Face model cache (large files, auto-downloaded on first run)
+.cache/
+sentence_transformers/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
