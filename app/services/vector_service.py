@@ -20,9 +20,30 @@ class VectorStoreManager:
     def _get_model(self) -> SentenceTransformer:
         """Lazily instantiates the SentenceTransformer model to optimize startup time."""
         if self._model is None:
-            # We use 'all-MiniLM-L6-v2', a fast, high-quality, 90MB CPU-friendly model.
-            # It will download on first use and be cached locally.
-            self._model = SentenceTransformer('all-MiniLM-L6-v2')
+            # We load the model from a local folder to avoid Hugging Face Hub calls when offline.
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            model_dir = os.path.join(base_dir, "models", "all-MiniLM-L6-v2")
+            
+            if os.path.exists(model_dir) and os.listdir(model_dir):
+                try:
+                    # Try loading the cached model strictly offline
+                    self._model = SentenceTransformer(model_dir, local_files_only=True)
+                except Exception as e:
+                    # Fallback to standard load if offline load failed for some reason
+                    pass
+            
+            if self._model is None:
+                # If local model is not present, we download it online, and then save it locally
+                try:
+                    self._model = SentenceTransformer('all-MiniLM-L6-v2')
+                    os.makedirs(model_dir, exist_ok=True)
+                    self._model.save(model_dir)
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to initialize SentenceTransformer model. If you are offline, "
+                        f"please make sure the model is downloaded and saved in '{model_dir}'. "
+                        f"Error: {str(e)}"
+                    )
         return self._model
 
     def create_session(self, session_id: str, chunks: List[str]) -> bool:

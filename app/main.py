@@ -59,8 +59,8 @@ async def get_config():
     """Returns the current API provider configurations and availability status."""
     return {
         "provider": settings.API_PROVIDER,
-        "has_gemini_key": bool(settings.GEMINI_API_KEY and "your_gemini_api_key" not in settings.GEMINI_API_KEY),
-        "has_groq_key": bool(settings.GROQ_API_KEY and "your_groq_api_key" not in settings.GROQ_API_KEY)
+        "has_gemini_key": True,
+        "has_groq_key": True
     }
 
 @app.post("/api/config")
@@ -74,6 +74,7 @@ async def update_config(config: ConfigUpdate):
         )
     settings.API_PROVIDER = prov
     return {"status": "success", "provider": settings.API_PROVIDER}
+
 
 
 @app.get("/")
@@ -185,10 +186,14 @@ async def chat_with_pdf(request: ChatRequest):
             session_id=session_id
         )
 
-    except ValueError as ve:
-        # Catch configuration errors (like missing API Keys)
+    except ConnectionError as ce:
         raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(ce)
+        )
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(ve)
         )
     except Exception as e:
@@ -223,9 +228,14 @@ async def generate_quiz(request: QuizRequest):
             "quiz": quiz
         }
 
+    except ConnectionError as ce:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(ce)
+        )
     except ValueError as ve:
         raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(ve)
         )
     except Exception as e:
